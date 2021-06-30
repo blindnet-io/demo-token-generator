@@ -1,1 +1,1 @@
-# Token generator for authenticatoin in blindnet
+# Token generator for authentication in blindnet
