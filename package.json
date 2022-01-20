@@ -32,8 +32,7 @@
     "url": ""
   },
   "dependencies": {
-    "noble-ed25519": "^1.2.5",
-    "uuid": "^8.3.2"
+    "noble-ed25519": "^1.2.5"
   },
   "devDependencies": {
     "@rollup/plugin-commonjs": "^19.0.0",
@@ -56,7 +55,6 @@
     "ts-node": "^9.1.1",
     "tslib": "^1.9.3",
     "typescript": "^4.2.4",
-    "uuid": "^8.3.2",
     "web-file-polyfill": "^1.0.1"
   }
 }

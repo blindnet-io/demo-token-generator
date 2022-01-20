@@ -1,82 +1,124 @@
 import { sign } from 'noble-ed25519'
-import { v4 as uuidv4 } from 'uuid'
+import { b64str2bin, bin2B64Url, str2B64Url } from './util'
 
-function strToB64Url(str: string): string {
-  function escape(str) {
-    return str.replace(/\+/g, '-').replace(/\//g, '_').replace(/=/g, '')
-  }
-
-  if (window && window.btoa)
-    return escape(btoa(str))
-  else
-    return escape(Buffer.from(str || 'utf8').toString('base64'))
-}
-
-function arrToB64Url(arr: Uint8Array): string {
-  return strToB64Url(Array.from(arr).map(val => String.fromCharCode(val)).join(''))
-}
-
-function b64ToArr(b64str: string): Uint8Array {
-  if (window && window.atob)
-    return Uint8Array.from(atob(b64str), c => c.charCodeAt(0))
-  else
-    return Uint8Array.from(Buffer.from(b64str, 'base64').toString('binary'), c => c.charCodeAt(0))
-}
-
-async function createAndSign(type: 'jwt' | 'tjwt' | 'cjwt', body: any, key: Uint8Array) {
-  const textEncoder = new TextEncoder()
+async function signedToken(type: string, body: any, key: Uint8Array) {
 
   const header = { 'alg': 'EdDSA', 'typ': type }
-  const hb = `${strToB64Url(JSON.stringify(header))}.${strToB64Url(JSON.stringify(body))}`
-  const hb_bytes = textEncoder.encode(hb)
+  const hb = `${str2B64Url(JSON.stringify(header))}.${str2B64Url(JSON.stringify(body))}`
+  const hb_bytes = new TextEncoder().encode(hb)
   const signature = await sign(hb_bytes, key)
-  const b64signature = arrToB64Url(signature)
+  const b64signature = bin2B64Url(signature)
 
   return `${hb}.${b64signature}`
 }
 
-function createTempUserToken(
-  param: string | string[],
-  appId: string,
-  key: string | Uint8Array,
-  duration: number = 3600,
-  uuidGen: () => string = () => uuidv4()
-): Promise<string> {
-
-  const keyBytes = typeof key === 'string' ? b64ToArr(key).slice(0, 32) : key
-
-  let to = undefined
-  if (typeof param === 'string')
-    to = { gid: param }
-  else
-    to = { uids: param }
-
-  const body = {
-    ...to,
-    app: appId,
-    tid: uuidGen(),
-    exp: Math.floor(Date.now() / 1000) + duration
-  }
-
-  return createAndSign('tjwt', body, keyBytes)
+type App = {
+  id: string
+}
+type User = {
+  id?: string,
+  groupId?: string
+}
+type Capture = {
+  groupId?: string,
+  userIds?: string[]
+}
+type Access = {
+  dataId?: string,
+  groupId?: string
 }
 
-function createUserToken(userId: string, groupId: string, appId: string, key: string | Uint8Array, duration = 86400) {
+class Token {
+  private key: Uint8Array
+  app: App
+  user: User
+  capture: Capture
+  access: Access
+  lifetime: number
 
-  const keyBytes = typeof key === 'string' ? b64ToArr(key).slice(0, 32) : key
-
-  const body = {
-    app: appId,
-    uid: userId,
-    gid: groupId,
-    exp: Math.floor(Date.now() / 1000) + duration
+  constructor(key: Uint8Array) {
+    this.key = key
   }
 
-  return createAndSign('jwt', body, keyBytes)
+  build(): Promise<string> {
+    const app = this.app ? { app: this.app.id } : {}
+    const user = this.user ? { uid: this.user.id, gid: this.user.groupId } : {}
+    const capture = this.capture ? { gid: this.capture.groupId, uids: this.capture.userIds ? this.capture.userIds.join : undefined } : {}
+    const access = this.access ? { did: this.access.dataId, gid: this.access.groupId } : {}
+
+    const body = {
+      ...app,
+      ...user,
+      ...capture,
+      ...access,
+      tid: 'test',
+      exp: Math.floor(Date.now() / 1000) + (this.lifetime || 3600)
+    }
+    Object.keys(body).forEach(key => body[key] === undefined && delete body[key])
+
+    const type = this.capture ? 'tjwt' : (this.access ? 'nejwt' : 'jwt')
+
+    return signedToken(type, body, this.key)
+  }
 }
 
-export {
-  createAndSign,
-  createTempUserToken,
-  createUserToken
+export class TokenBuilder {
+  private token: Token
+
+  constructor(token: Token) {
+    this.token = token
+  }
+
+  static init(key: string) {
+    const keyBytes = typeof key === 'string' ? b64str2bin(key).slice(0, 32) : key
+    return new TokenBuilder(new Token(keyBytes))
+  }
+
+  build() {
+    return this.token.build()
+  }
+
+  lifetime(time: number) {
+    this.token.lifetime = time
+    return this
+  }
+
+  forApp(appId: string) {
+    const me: TokenBuilder = this
+
+    me.token.app = { id: appId }
+
+    return {
+      forUser: {
+        withId: (userId: string) => {
+          me.token.user = { id: userId }
+
+          return {
+            inGroup: (groupId: string) => {
+              me.token.user.groupId = groupId
+              return me
+            }
+          }
+        }
+      },
+      toCaptureData: {
+        forGroup: (groupId: string) => {
+          me.token.capture = { groupId }
+          return me
+        },
+        forUsers: (userIds: string[]) => {
+          me.token.capture = { userIds }
+          return me
+        }
+      },
+      toAccessData: {
+        withId: (dataId: string) => {
+          me.token.access = { dataId }
+        },
+        inGroup: (groupId: string) => {
+          me.token.access = { groupId }
+        }
+      }
+    }
+  }
 }

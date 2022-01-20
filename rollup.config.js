@@ -48,7 +48,11 @@ export default [
       { file: pkg.main, format: 'cjs' }
     ],
     plugins: [
-      resolve(),
+      resolve({
+        browser: true,
+        extensions: ['.ts', '.js'],
+        preferBuiltins: false
+      }),
       commonjs(),
       typescript(),
     ]
