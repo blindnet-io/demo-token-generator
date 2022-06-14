@@ -43,7 +43,7 @@ class Token {
   build(): Promise<string> {
     const app = this.app ? { app: this.app.id } : {}
     const user = this.user ? { uid: this.user.id, gid: this.user.groupId } : {}
-    const capture = this.capture ? { gid: this.capture.groupId, uids: this.capture.userIds ? this.capture.userIds.join : undefined } : {}
+    const capture = this.capture ? { gid: this.capture.groupId, uids: this.capture.userIds ? this.capture.userIds.join() : undefined } : {}
     const access = this.access ? { did: this.access.dataId, gid: this.access.groupId } : {}
 
     const body = {
