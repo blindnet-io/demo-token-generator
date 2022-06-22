@@ -8,7 +8,7 @@
 
 <p align="center">
   <strong>
-    demo library generating <a href="https://blindnet.dev/docs/extra/glossary#authentication-token">authentication tokens</a> on the client-side
+    demo library generating <a href="https://blindnet.dev/docs/glossary#authentication-token">authentication tokens</a> on the client-side
   </strong>  
 </p>
 
