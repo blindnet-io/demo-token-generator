@@ -1,5 +1,5 @@
 <h1 align="center">
-  blindnet devkit<br />
+  blindnet encryption engine<br />
   Demo Token Generator
 </h1>
 
@@ -34,7 +34,7 @@
 
 ## Get Started
 
-:rocket: Check out our [Quick Start Guide](https://blindnet.dev/docs/quickstart) to get started in a snap.
+:rocket: Check out our [Quick Start Guide](https://blindnet.dev/docs/encryption/quickstart) to get started in a snap.
 
 ## Installation
 
@@ -63,7 +63,7 @@ Stay up to date with new releases and projects, learn more about how to protect 
 
 ## License
 
-The blindnet devkit demo token generator is available under [MIT][license] (and [here](https://github.com/blindnet-io/openness-framework/blob/main/docs/decision-records/DR-0001-oss-license.md) is why).
+The blindnet encryption engine demo token generator is available under [MIT][license] (and [here](https://github.com/blindnet-io/openness-framework/blob/main/docs/decision-records/DR-0001-oss-license.md) is why).
 
 <!-- project's URLs -->
 
@@ -77,7 +77,6 @@ The blindnet devkit demo token generator is available under [MIT][license] (and 
 
 <!-- common URLs -->
 
-[devkit]: https://github.com/blindnet-io/blindnet.dev
 [openness]: https://github.com/blindnet-io/openness-framework
 [product]: https://github.com/blindnet-io/product-management
 [request]: https://github.com/blindnet-io/devrel-management/issues/new?assignees=noelmace&labels=request%2Ctriage&template=request.yml&title=%5BRequest%5D%3A+
