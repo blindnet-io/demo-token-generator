@@ -1,7 +1,14 @@
 import { sign } from 'noble-ed25519'
 import { b64str2bin, bin2B64Url, str2B64Url } from './util'
 
-async function signToken(type: string, body: any, key: Uint8Array) {
+type Type = 'app' | 'user' | 'anon'
+type Body = {
+  app: string,
+  uid?: string,
+  exp: number
+}
+
+async function signToken(type: Type, body: Body, key: Uint8Array) {
 
   const header = { 'alg': 'EdDSA', 'typ': type }
   const hb = `${str2B64Url(JSON.stringify(header))}.${str2B64Url(JSON.stringify(body))}`
@@ -12,51 +19,25 @@ async function signToken(type: string, body: any, key: Uint8Array) {
   return `${hb}.${b64signature}`
 }
 
-type App = {
-  id: string
-}
-type User = {
-  id?: string,
-  groupId?: string
-}
-type Capture = {
-  groupId?: string,
-  userIds?: string[]
-}
-type Access = {
-  dataId?: string,
-  groupId?: string
-}
-
 class Token {
-  private key: Uint8Array
-  app: App
-  user: User
-  capture: Capture
-  access: Access
-  lifetime: number
+  appId?: string
+  key: Uint8Array
+  userId?: string
+  expiration?: number
 
-  constructor(key: Uint8Array) {
+  constructor(appId: string, key: Uint8Array) {
+    this.appId = appId
     this.key = key
   }
 
-  build(): Promise<string> {
-    const app = this.app ? { app: this.app.id } : {}
-    const user = this.user ? { uid: this.user.id, gid: this.user.groupId } : {}
-    const capture = this.capture ? { gid: this.capture.groupId, uids: this.capture.userIds } : {}
-    const access = this.access ? { did: this.access.dataId, gid: this.access.groupId } : {}
+  create(type: Type): Promise<string> {
 
     const body = {
-      ...app,
-      ...user,
-      ...capture,
-      ...access,
-      tid: 'test',
-      exp: Math.floor(Date.now() / 1000) + (this.lifetime || 3600)
+      app: this.appId,
+      uid: this.userId,
+      exp: this.expiration || 999999999,
     }
     Object.keys(body).forEach(key => body[key] === undefined && delete body[key])
-
-    const type = this.capture ? 'tjwt' : (this.access ? 'nejwt' : 'jwt')
 
     return signToken(type, body, this.key)
   }
@@ -65,60 +46,31 @@ class Token {
 export class TokenBuilder {
   private token: Token
 
-  constructor(token: Token) {
-    this.token = token
-  }
-
-  static init(key: string) {
-    const keyBytes = typeof key === 'string' ? b64str2bin(key).slice(0, 32) : key
-    return new TokenBuilder(new Token(keyBytes))
-  }
-
-  build() {
-    return this.token.build()
-  }
-
-  lifetime(time: number) {
-    this.token.lifetime = time
+  constructor(appId: string, key: string) {
+    const keyBytes = b64str2bin(key).slice(0, 32)
+    this.token = new Token(appId, keyBytes)
     return this
   }
 
-  forApp(appId: string) {
-    const me: TokenBuilder = this
+  static init(appId: string, key: string) {
+    return new TokenBuilder(appId, key)
+  }
 
-    me.token.app = { id: appId }
+  expiration(exp: number) {
+    this.token.expiration = exp
+    return this
+  }
 
-    return {
-      forUser: {
-        withId: (userId: string) => {
-          me.token.user = { id: userId }
+  user(usr: string) {
+    this.token.userId = usr
+    return this.token.create('user')
+  }
 
-          return {
-            inGroup: (groupId: string) => {
-              me.token.user.groupId = groupId
-              return me
-            }
-          }
-        }
-      },
-      toCaptureData: {
-        forGroup: (groupId: string) => {
-          me.token.capture = { groupId }
-          return me
-        },
-        forUsers: (userIds: string[]) => {
-          me.token.capture = { userIds }
-          return me
-        }
-      },
-      toAccessData: {
-        withId: (dataId: string) => {
-          me.token.access = { dataId }
-        },
-        inGroup: (groupId: string) => {
-          me.token.access = { groupId }
-        }
-      }
-    }
+  app() {
+    return this.token.create('app')
+  }
+
+  anon() {
+    return this.token.create('anon')
   }
 }
