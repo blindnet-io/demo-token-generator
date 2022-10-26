@@ -1,7 +1,7 @@
 import { sign } from 'noble-ed25519'
 import { b64str2bin, bin2B64Url, str2B64Url } from './util'
 
-async function signedToken(type: string, body: any, key: Uint8Array) {
+async function signToken(type: string, body: any, key: Uint8Array) {
 
   const header = { 'alg': 'EdDSA', 'typ': type }
   const hb = `${str2B64Url(JSON.stringify(header))}.${str2B64Url(JSON.stringify(body))}`
@@ -43,7 +43,7 @@ class Token {
   build(): Promise<string> {
     const app = this.app ? { app: this.app.id } : {}
     const user = this.user ? { uid: this.user.id, gid: this.user.groupId } : {}
-    const capture = this.capture ? { gid: this.capture.groupId, uids: this.capture.userIds ? this.capture.userIds.join() : undefined } : {}
+    const capture = this.capture ? { gid: this.capture.groupId, uids: this.capture.userIds } : {}
     const access = this.access ? { did: this.access.dataId, gid: this.access.groupId } : {}
 
     const body = {
@@ -58,7 +58,7 @@ class Token {
 
     const type = this.capture ? 'tjwt' : (this.access ? 'nejwt' : 'jwt')
 
-    return signedToken(type, body, this.key)
+    return signToken(type, body, this.key)
   }
 }
 
