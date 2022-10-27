@@ -35,7 +35,7 @@ class Token {
     const body = {
       app: this.appId,
       uid: this.userId,
-      exp: this.expiration || 999999999,
+      exp: this.expiration || 1999999999,
     }
     Object.keys(body).forEach(key => body[key] === undefined && delete body[key])
 
@@ -47,7 +47,7 @@ export class TokenBuilder {
   private token: Token
 
   constructor(appId: string, key: string) {
-    const keyBytes = b64str2bin(key).slice(0, 32)
+    const keyBytes = b64str2bin(key)
     this.token = new Token(appId, keyBytes)
     return this
   }
